@@ -1,18 +1,22 @@
 from telethon import events
-from telegram import get_message_options, get_message_options_list, client, CHANNELS
-from iqoption import IQBot
+from telegram import get_message_options, run_command, client, CHANNELS
+from trading import TradingBot
 from threading import Timer
-from debug import watch_threads, log
+from debug import log
 from utils import fmt_order, Timeout
 from os import getenv
-from termcolor import colored
+from asyncio import get_event_loop
 
 
 TEST_MODE = getenv('TEST_MODE', 'False') == 'True'
 DISCONNECTION_TIMEOUT = int(getenv('DISCONNECTION_TIMEOUT', 60)) * 60
 
-bot = IQBot(stop_callback=lambda _: client.disconnect())
-parsed_orders = {}
+
+def stop_client():
+    client.disconnect()
+
+
+bot = TradingBot(stop_callback=stop_client, loop=get_event_loop())
 
 target_chat = []
 patterns = ['.*']
@@ -25,61 +29,48 @@ else:
         patterns.append(chat['pattern'])
 
 
-def stop_client():
-    client.disconnect()
-
-
 # creates a timeout to disconnect the client when no orders are received in the specified interval
 disconnect_timeout = Timeout(
-    max_interval=DISCONNECTION_TIMEOUT, finish=stop_client)
+    max_interval=DISCONNECTION_TIMEOUT, finish=stop_client, loop=client.loop)
 
 
 # @client.on(events.NewMessage(chats=target_chat, pattern='.*ATENÇÃO.*'))
 @client.on(events.NewMessage(chats=target_chat, pattern='|'.join(patterns)))
 async def new_option_message(event):
-    def run_order(pair, action, timeframe):
-        try:
-            del parsed_orders[fmt_order(pair, action, 0, timeframe)]
-        except:
-            pass
-        bot.execute_option(pair, action, expires_in=timeframe)
-
     options = get_message_options(event.raw_text)
 
     if options:
-        (pair, action, start_in, timeframe) = options
-        order_format = fmt_order(pair, action, start_in, timeframe)
-        if not order_format in parsed_orders:
-            parsed_orders[order_format] = True
-            # disconnect_timeout.reset()
-            t = Timer(start_in, lambda: run_order(pair, action, timeframe))
-            t.name = 'Order ' + order_format
-            t.start()
-        else:
-            log(f'Order {order_format} already queued', False)
+        (pair, action, start_time, timeframe) = options
+        disconnect_timeout.reset()
+        bot.execute_option(pair, action, start_time, expires_in=timeframe)
 
 
-@client.on(events.NewMessage(chats=target_chat, pattern=r'OTC - \d{2}/(\w{3}|\d{2})/\d{4}'))
-async def new_otc_message(event):
-    options_list = get_message_options_list(event.raw_text)
-
-    if options_list:
-        for options in options_list:
-            (pair, action, start_in) = options
-            Timer(start_in, lambda: bot.execute_option(pair, action)).start()
+@client.on(events.NewMessage(chats=['me'], pattern=r'bot:.*'))
+async def new_command(event):
+    result = run_command(event.raw_text.split('bot:')[1])
+    if result == 'STOP':
+        await event.reply('Stopped')
+        client.disconnect()
+    elif result:
+        await event.reply(result)
 
 
 def run():
     if TEST_MODE:
-        log(colored(' TEST MODE ', 'grey', 'on_yellow'))
+        log('TEST MODE')
     with client:
         client.run_until_disconnected()
+    bot.close()
+    disconnect_timeout.cancel()
 
 
 if __name__ == "__main__":
-    watch_threads()
-    # disconnect_timeout.start()
-    # try:
-    run()
-    # except Exception:
-    # disconnect_timeout.cancel()
+    # watch_threads()
+    if DISCONNECTION_TIMEOUT > 0:
+        disconnect_timeout.start()
+    try:
+        run()
+    except Exception as e:
+        print('Unexpected crash:', e)
+        bot.close()
+        disconnect_timeout.cancel()
