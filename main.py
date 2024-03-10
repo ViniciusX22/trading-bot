@@ -1,9 +1,8 @@
 from telethon import events
 from telegram import get_message_options, run_command, client, CHANNELS
 from trading import TradingBot
-from threading import Timer
 from debug import log
-from utils import fmt_order, Timeout
+from utils import Timeout
 from os import getenv
 from asyncio import get_event_loop
 
@@ -21,11 +20,12 @@ bot = TradingBot(stop_callback=stop_client, loop=get_event_loop())
 target_chat = []
 patterns = ['.*']
 if TEST_MODE:
+    # if test mode, receives signals from "Saved messages" chat
     target_chat = 'me'
 else:
     patterns = []
     for chat in CHANNELS:
-        target_chat.append(chat['name'])
+        target_chat.append(chat['id'])
         patterns.append(chat['pattern'])
 
 
@@ -34,7 +34,6 @@ disconnect_timeout = Timeout(
     max_interval=DISCONNECTION_TIMEOUT, finish=stop_client, loop=client.loop)
 
 
-# @client.on(events.NewMessage(chats=target_chat, pattern='.*ATENÇÃO.*'))
 @client.on(events.NewMessage(chats=target_chat, pattern='|'.join(patterns)))
 async def new_option_message(event):
     options = get_message_options(event.raw_text)
@@ -45,6 +44,8 @@ async def new_option_message(event):
         bot.execute_option(pair, action, start_time, expires_in=timeframe)
 
 
+# event for receiving commands for the bot through "Saved messages"
+# syntax: bot:<command_name>
 @client.on(events.NewMessage(chats=['me'], pattern=r'bot:.*'))
 async def new_command(event):
     result = run_command(event.raw_text.split('bot:')[1])
@@ -65,7 +66,6 @@ def run():
 
 
 if __name__ == "__main__":
-    # watch_threads()
     if DISCONNECTION_TIMEOUT > 0:
         disconnect_timeout.start()
     try:

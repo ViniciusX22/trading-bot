@@ -10,6 +10,12 @@ try:
 except Exception:
     pass
 
+""" 
+Reads a signal history from a file and simulates the end
+balance after every trade, taking into consideration possible
+SOROS and GALE strategies
+"""
+
 
 BASE_ORDER = float(getenv('BASE_ORDER', 0.02))
 GALE_RATE = float(getenv('GALE_RATE', 2.2))

@@ -80,6 +80,9 @@ class PocketOption():
     demo = True
     display = None
     check_errors = 0
+
+    # script for automatically adding a unique class
+    # to every new order created in the deals list
     script = '''
         new MutationObserver(mutations => {
             mutations.forEach(mutation => {
@@ -138,6 +141,7 @@ class PocketOption():
         if linux:
             self.display = Display(size=(1400, 800), visible=0)
             self.display.start()
+            # comment this like with if the binary is globally available
             options.binary_location = "./ChromePortableGCPM/data/chrome"
             options.add_argument('--single-process')
         else:
@@ -333,34 +337,30 @@ class PocketOption():
         self.driver = UseDriver(self.create_driver())
 
 
-if __name__ == '__main__':
-    POCKET_SSID = getenv('POCKETOPTION_SESSION')
+# if __name__ == '__main__':
+#     POCKET_SSID = getenv('POCKETOPTION_SESSION')
 
-    api = PocketOption(POCKET_SSID)
+#     api = PocketOption(POCKET_SSID)
 
-    print(api.get_balance())
+#     print(api.get_balance())
 
-    def buy1():
-        check, id = api.buy(1, 'EURUSD', 'put', 1)
-        print(api.check_binary_order(id))
+#     def buy1():
+#         check, id = api.buy(1, 'EURUSD', 'put', 1)
+#         print(api.check_binary_order(id))
 
-    def buy2():
-        check, id = api.buy(1, 'EURCAD', 'call', 1)
-        print(api.check_binary_order(id))
+#     def buy2():
+#         check, id = api.buy(1, 'EURCAD', 'call', 1)
+#         print(api.check_binary_order(id))
 
-    def buy3():
-        check, id = api.buy(1, 'GBPJPY', 'call', 1)
-        if check:
-            print(api.check_binary_order(id))
+#     def buy3():
+#         check, id = api.buy(1, 'GBPJPY', 'call', 1)
+#         if check:
+#             print(api.check_binary_order(id))
 
-    # Thread(target=buy1).start()
-    # Thread(target=buy2).start()
-    # Thread(target=buy3).start()
+#     buy1()
+#     buy2()
+#     buy3()
 
-    buy1()
-    buy2()
-    buy3()
+#     sleep(5)
 
-    sleep(5)
-
-    api.quit()
+#     api.quit()

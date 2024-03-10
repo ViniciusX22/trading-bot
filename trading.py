@@ -10,8 +10,7 @@ from asyncio import set_event_loop
 from typing import Dict, List
 
 load_dotenv()
-# EMAIL = getenv('IQOPTION_EMAIL')
-# PASSWORD = getenv('IQOPTION_PASSWORD')
+
 POCKET_SSID = getenv('POCKETOPTION_SESSION')
 
 # only stop orders for the day if True
@@ -55,16 +54,8 @@ class TradingBot():
 
     def __init__(self, stop_callback=None, loop=None):
         print("Conecting...")
-        # self.api = IQ_Option(EMAIL, PASSWORD)
+
         self.api = PocketOption(POCKET_SSID, DEMO_MODE)
-        # _, reason = self.api.connect()
-
-        # if reason == "2FA":
-        #     print('##### 2FA enabled #####')
-        #     print("An sms has been sent with a code to your number")
-
-        #     code_sms = input("Enter the code received: ")
-        #     _, reason = self.api.connect_2fa(code_sms)
 
         self.initial_balance = self.api.get_balance()
         self.stop_callback = stop_callback
@@ -108,6 +99,7 @@ class TradingBot():
             self.reset()
         self.last_order_day = datetime.now().day
         log(f'Executing order: {pair}/{action.upper()}', False)
+
         # filter pending orders which are 93% of the expiration time in
         # (e.g. 4m40s if expires in 5min)
         pending_orders = list(filter(lambda pos: not pos['closed'] and time(
@@ -145,6 +137,7 @@ class TradingBot():
             now = get_time()
             log(f'{now} | {self.orders_received}', False)
 
+            # split amount equally for all orders schedule for the same time
             amount = normalize_amount(
                 balance * BASE_ORDER / len(self.orders_received[now]) if not gale else amount)
 
@@ -316,6 +309,6 @@ class TradingBot():
         return self.stop_day is not None and datetime.now().day == self.stop_day
 
 
-if __name__ == '__main__':
-    iq = TradingBot()
-    id = iq.execute_option('GBPUSD', 'put', 100)
+# if __name__ == '__main__':
+#     iq = TradingBot()
+#     id = iq.execute_option('GBPUSD', 'put', 100)

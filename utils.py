@@ -4,7 +4,9 @@ from threading import Timer
 from asyncio import set_event_loop
 
 
-class TZBR(tzinfo):
+class CustomTZ(tzinfo):
+    """ Update this to the desired timezone """
+
     def utcoffset(self, dt):
         return timedelta(hours=-3)
 
@@ -20,16 +22,16 @@ class TZBR(tzinfo):
 
 def fmt_order(pair, action, start_time, timeframe):
     if type(start_time) == int:
-        order_time = datetime.fromtimestamp(time() + start_time, TZBR())
+        order_time = datetime.fromtimestamp(time() + start_time, CustomTZ())
         return f'{pair};{action};{order_time.hour}:{order_time.minute if order_time.minute >= 10 else "0" + str(order_time.minute)}:{timeframe}'
     return f'{pair};{action};{start_time}:{timeframe}'
 
 
 def get_time(t=None):
     if t:
-        dt = datetime.fromtimestamp(t, TZBR())
+        dt = datetime.fromtimestamp(t, CustomTZ())
     else:
-        dt = datetime.now(TZBR())
+        dt = datetime.now(CustomTZ())
     return strftime("%H:%M", (1, 0, 0, dt.hour, dt.minute, 0, 0, 0, 0))
 
 
@@ -39,7 +41,7 @@ def normalize_amount(amount):
 
 def time_until(start_time):
     hour, min = start_time.split(':')
-    dt = datetime.now(TZBR())
+    dt = datetime.now(CustomTZ())
     time_is_equal = int(hour) == dt.hour and int(min) == dt.minute
     duration = timedelta(hours=int(hour), minutes=int(min)) - timedelta(
         hours=dt.hour, minutes=dt.minute, seconds=dt.second) if not time_is_equal else timedelta()
