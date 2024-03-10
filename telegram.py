@@ -6,6 +6,7 @@ import re
 from datetime import timedelta, datetime
 from time import localtime
 from debug import log
+from json import load
 
 load_dotenv()
 
@@ -13,20 +14,21 @@ api_id = getenv('TELEGRAM_API_ID')
 api_hash = getenv('TELEGRAM_API_HASH')
 phone = getenv('TELEGRAM_PHONE')
 password = getenv('TELEGRAM_PASSWORD')
-client = TelegramClient('iqbot', api_id, api_hash).start(
+client = TelegramClient('tradingbot', api_id, api_hash).start(
     phone=phone,  password=password)
 
-CHANNELS = [
-    {'name': PeerChannel(channel_id=1756002871),  # Sinais VIP
-        'pattern': '.*SINAL VIP.*'},
-    {'name': PeerChannel(channel_id=1221176746),  # Sinais Blacklist
-     'pattern': '.*SINAL BLACKLIST.*'},
-    {'name': PeerChannel(channel_id=1366197983),  # Sinais Grátis
-     'pattern': '.*SINALZINHO GRATUITO.*'}
-]
+# copy telegram_channels.example.json to provide the channels
+CHANNELS = [{**channel, 'id': PeerChannel(channel_id=channel['id'])}
+            for channel in load(open('telegram_channels.json', 'r'))]
 
 
 def get_message_options(message):
+    """
+    Parses a telegram message and retrieves all information necessary for scheduling a trade
+
+    Obs: this implementation is specific for my scenario. Other message patterns will require changes in this funcion
+    """
+
     action_map = {'COMPRA': 'call', 'VENDA': 'put'}
     start_time = None
     pair = None
@@ -93,6 +95,11 @@ def get_message_options(message):
 
 
 def get_message_options_list(message):
+    """
+    Parses a telegram message and retrieves all information necessary for scheduling multiple trades
+
+    Obs: this implementation is specific for my scenario. Other message patterns will require changes in this funcion
+    """
     options_list = []
     for line in message.split('\n'):
         start_time = None
