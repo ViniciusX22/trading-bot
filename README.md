@@ -1,2 +1,3 @@
-## IQ Option bot
-Just a bot
+## Trading Bot
+
+A cli bot that syncs Telegram signals to orders in the PocketOption platform.
